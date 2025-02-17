@@ -1,8 +1,8 @@
 package main
 
 import (
+	"TechmasterProject/03/processing"
 	"fmt"
-	_ "github.com/lib/pq"
 	"log"
 	"os"
 )
@@ -24,7 +24,7 @@ func main() {
 	if err != nil {
 		log.Fatal("Lỗi khi ghi file:", err)
 	}
-	fmt.Println("Đã lưu đoạn hội thoại vào file", fileName)
+	fmt.Println("✅ Đã lưu đoạn hội thoại vào file", fileName)
 
 	// Đọc nội dung từ file
 	content, err := os.ReadFile(fileName)
@@ -33,8 +33,8 @@ func main() {
 	}
 
 	// Lọc từ quan trọng
-	importantWords := extractImportantWords(string(content))
+	importantWords := processing.ExtractImportantWords(string(content))
 
-	// Lưu vào PostgreSQL
-	saveToPostgres(importantWords)
+	// Lưu vào PostgreSQL (truyền cả nội dung hội thoại gốc)
+	processing.SaveToPostgres(importantWords, string(content))
 }

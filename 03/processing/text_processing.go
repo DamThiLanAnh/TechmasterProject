@@ -1,31 +1,39 @@
 package processing
 
 import (
-	"database/sql"
+	"TechmasterProject/03/db"
 	"encoding/json"
 	"fmt"
-	_ "github.com/lib/pq"
 	"log"
 	"regexp"
 	"strings"
+
+	_ "github.com/lib/pq"
 )
 
+// Danh sách stop words
 var stopWords = map[string]bool{
 	"có": true, "thể": true, "tôi": true, "đang": true,
 	"ở": true, "đến": true, "đây": true, "sẽ": true, "nhiều": true,
 	"không": true, "gì": true, "vào": true, "là": true, "một": true,
 }
 
+// Cụm từ quan trọng
 var importantPhrases = []string{"đi thẳng", "rẽ phải", "cảm ơn", "không có gì", "chúc vui"}
 
-func extractImportantWords(text string) []string {
-	// Loại bỏ tên người nói (James:, Lan:)
+// Xử lý văn bản, trích xuất từ quan trọng
+
+func ExtractImportantWords(text string) []string {
+	// Loại bỏ tên người nói
 	re := regexp.MustCompile(`(?i)(James:|Lan:)`)
 	text = re.ReplaceAllString(text, "")
 
-	// Xóa dấu câu và chuẩn hóa chữ thường bằng thư viện go-text
-	text = text.Sanitize(text, text.EscapeNone)
+	// Chuyển chữ thường và xóa dấu câu
 	text = strings.ToLower(text)
+	text = strings.ReplaceAll(text, ".", "")
+	text = strings.ReplaceAll(text, ",", "")
+	text = strings.ReplaceAll(text, "!", "")
+	text = strings.ReplaceAll(text, "?", "")
 
 	// Tách từ
 	words := strings.Fields(text)
@@ -55,52 +63,61 @@ func extractImportantWords(text string) []string {
 	return importantWords
 }
 
-func saveToPostgres(words []string) {
-	// Kết nối PostgreSQL
-	connStr := "user=your_user password=your_password dbname=your_database host=localhost sslmode=disable"
-	db, err := sql.Open("postgres", connStr)
+// Lưu dữ liệu vào PostgreSQL
+
+func SaveToPostgres(words []string, originalText string) {
+	// Kết nối đến PostgreSQL
+	dbConn, err := db.ConnectToDB()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Lỗi kết nối DB:", err)
 	}
-	defer db.Close()
+	defer dbConn.Close()
 
 	// Tạo bảng dialog nếu chưa có
-	_, err = db.Exec(`
-		CREATE TABLE dialog (
+	_, err = dbConn.Exec(`
+		CREATE TABLE IF NOT EXISTS dialog (
 			id BIGSERIAL PRIMARY KEY,
-			lang VARCHAR(2) NOT NULL, 	-- vi: Vietnamese, en: English
-			content TEXT NOT NULL  		-- Lưu toàn bộ nội dung hội thoại
-			json JSONB NOT NULL 		-- Luu data dang json
-			);
-	`)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Tạo bảng word nếu chưa có
-	_, err = db.Exec(`
-		CREATE TABLE word IF NOT EXISTS  (
-			id BIGSERIAL PRIMARY KEY,
-			lang VARCHAR(2) NOT NULL, 	-- vi: Vietnamese, en: English
-			content TEXT NOT NULL, 		-- Lưu gốc
-		    json JSONB NOT NULL,		-- Luu data dang json
-			translate TEXT NOT NULL 	-- Lưu dịch ra tiếng Anh
+			lang VARCHAR(2) NOT NULL,
+			content TEXT NOT NULL,
+			json JSONB NOT NULL
 		);
 	`)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Lỗi tạo bảng dialog:", err)
 	}
 
-	// Chuyển slice thành JSON
+	// Tạo bảng word nếu chưa có
+	_, err = dbConn.Exec(`
+		CREATE TABLE IF NOT EXISTS word (
+			id BIGSERIAL PRIMARY KEY,
+			lang VARCHAR(2) NOT NULL,
+			content TEXT NOT NULL,
+		    json JSONB NOT NULL,
+			translate TEXT NOT NULL
+		);
+	`)
+	if err != nil {
+		log.Fatal("Lỗi tạo bảng word:", err)
+	}
+
+	// Chuyển danh sách từ quan trọng thành JSON
 	jsonData, err := json.Marshal(map[string][]string{"words": words})
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Lỗi chuyển JSON:", err)
 	}
 
-	// Lưu vào PostgreSQL
-	_, err = db.Exec("INSERT INTO word (json) VALUES ($1)", jsonData)
+	// Lưu nội dung hội thoại vào bảng dialog
+	_, err = dbConn.Exec("INSERT INTO dialog (lang, content, json) VALUES ($1, $2, $3)", "vi", originalText, jsonData)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Lỗi lưu vào dialog:", err)
+	}
+
+	// Lưu danh sách từ vào bảng word
+	for _, word := range words {
+		_, err := dbConn.Exec("INSERT INTO word (lang, content, json, translate) VALUES ($1, $2, $3, $4)", "vi", word, jsonData, "")
+		if err != nil {
+			log.Fatal("Lỗi lưu vào word:", err)
+		}
 	}
 
 	fmt.Println("Dữ liệu đã được lưu vào PostgreSQL!", string(jsonData))

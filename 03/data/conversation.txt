@@ -1,6 +1,0 @@
-vi: James: Chào bạn! Bạn có thể chỉ tôi đường đến hồ Hoàn Kiếm không?
-vi: Lan: Chào bạn! Bạn đang ở đâu?
-vi: James: Tôi đang ở phố Tràng Tiền.
-vi: Lan: Từ đây, bạn đi thẳng, rẽ phải vào đường Đinh Tiên Hoàng, sẽ thấy hồ.
-vi: James: Cảm ơn bạn nhiều!
-vi: Lan: Không có gì, chúc bạn đi vui!
