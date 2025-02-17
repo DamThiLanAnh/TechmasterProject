@@ -1,38 +1,21 @@
 package db
 
 import (
-	"database/sql"
+	"TechmasterProject/03/global"
 	"fmt"
-	_ "github.com/lib/pq"
-	"os"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
-func ConnectToDB() (*sql.DB, error) {
-	dbUser := os.Getenv("POSTGRES_USER")
-	dbPass := os.Getenv("POSTGRES_PASSWORD")
-	dbName := os.Getenv("POSTGRES_DB")
-	dbHost := os.Getenv("DB_HOST")
-	if dbHost == "" {
-		dbHost = "localhost"
-	}
-	dbPort := os.Getenv("DB_PORT")
-	if dbPort == "" {
-		dbPort = "5432"
-	}
-
-	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		dbHost, dbPort, dbUser, dbPass, dbName)
-
-	db, err := sql.Open("postgres", connStr)
+func ConnectToDB() {
+	dsn := "host=localhost user=root password=123techmaster dbname=techmaster port=5432 sslmode=disable TimeZone=Asia/Shanghai"
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		SkipDefaultTransaction: false,
+	})
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
+	fmt.Println("Successfully connected to database")
 
-	err = db.Ping()
-	if err != nil {
-		return nil, err
-	}
-
-	fmt.Println("✅ Connected to PostgreSQL successfully!")
-	return db, nil
+	global.DB = db
 }
