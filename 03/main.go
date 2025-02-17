@@ -10,11 +10,11 @@ import (
 func main() {
 	// Đoạn hội thoại mẫu
 	conversation := `
-	James: Chào bạn! Bạn có thể chỉ tôi đường đến hồ Hoàn Kiếm không?
-	Lan: Chào bạn! Bạn đang ở đâu?
-	James: Tôi đang ở phố Tràng Tiền.
-	Lan: Từ đây, bạn đi thẳng, rẽ phải vào đường Đinh Tiên Hoàng, sẽ thấy hồ.
-	James: Cảm ơn bạn nhiều!
+	James: Chào bạn! Bạn có thể chỉ tôi đường đến hồ Hoàn Kiếm không?
+	Lan: Chào bạn! Bạn đang ở đâu?
+	James: Tôi đang ở phố Tràng Tiền.
+	Lan: Từ đây, bạn đi thẳng, rẽ phải vào đường Đinh Tiên Hoàng, sẽ thấy hồ.
+	James: Cảm ơn bạn nhiều!
 	Lan: Không có gì, chúc bạn đi vui!
 	`
 
@@ -35,6 +35,9 @@ func main() {
 	// Lọc từ quan trọng
 	importantWords := processing.ExtractImportantWords(string(content))
 
-	// Lưu vào PostgreSQL (truyền cả nội dung hội thoại gốc)
-	processing.SaveToPostgres(importantWords, string(content))
+	// Dịch các từ quan trọng
+	translatedWords := processing.TranslateWords(importantWords)
+
+	// Lưu vào PostgreSQL
+	processing.SaveToPostgres(importantWords, string(content), translatedWords)
 }
