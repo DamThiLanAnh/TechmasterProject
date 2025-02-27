@@ -1,15 +1,29 @@
 package config
 
 import (
-	"github.com/joho/godotenv"
 	"log"
+
+	"github.com/spf13/viper"
 )
 
-func LoadEnv() {
-	if err := godotenv.Load(); err != nil {
-		log.Println("Warning: .env file not found, loading default values")
+// Config lưu trữ các biến cấu hình
+type Config struct {
+	GroqAPIKey string
+}
+
+// LoadConfig đọc cấu hình từ file .env
+func LoadConfig() *Config {
+	viper.SetConfigFile(".env")
+	viper.AutomaticEnv()
+
+	if err := viper.ReadInConfig(); err != nil {
+		log.Println("Không tìm thấy file .env, sẽ dùng biến môi trường")
 	}
 
-	// dùng thư viện này: https://github.com/spf13/viper
+	apiKey := viper.GetString("GROQ_API_KEY")
+	if apiKey == "" {
+		log.Fatal("GROQ_API_KEY chưa được thiết lập")
+	}
 
+	return &Config{GroqAPIKey: apiKey}
 }

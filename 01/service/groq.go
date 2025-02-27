@@ -1,74 +1,50 @@
-package service
+package services
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
-	"io/ioutil"
-	"net/http"
-	"os"
+	"github.com/go-resty/resty/v2"
 )
 
-type RequestBody struct {
-	Model    string    `json:"model"`
-	Messages []Message `json:"messages"`
-}
+// Cấu trúc phản hồi từ API Groq
 
-type Message struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
-}
-
-type ResponseBody struct {
+type GroqResponse struct {
 	Choices []struct {
-		Message Message `json:"message"`
+		Message struct {
+			Content string `json:"content"`
+		} `json:"message"`
 	} `json:"choices"`
 }
 
-func CallGroqAPI(prompt string) (string, error) {
-	apiKey := os.Getenv("GROQ_API_KEY")
-	if apiKey == "" {
-		return "", errors.New("GROQ_API_KEY is missing")
-	}
+// Gửi câu hỏi đến API Groq
 
-	requestData := RequestBody{
-		Model:    "llama3-8b-8192",
-		Messages: []Message{{Role: "system", Content: "You are a helpful AI."}, {Role: "user", Content: prompt}},
-	}
+func AskGroq(question, apiKey string) (string, error) {
+	client := resty.New()
+	resp, err := client.R().
+		SetHeader("Authorization", "Bearer "+apiKey).
+		SetHeader("Content-Type", "application/json").
+		SetBody(map[string]interface{}{
+			"model": "llama3-8b-8192", // ✅ Dùng model của Groq
+			"messages": []map[string]string{
+				{"role": "user", "content": question},
+			},
+		}).
+		Post("https://api.groq.com/openai/v1/chat/completions") // ✅ URL đúng
 
-	jsonData, _ := json.Marshal(requestData)
-	req, err := http.NewRequest("POST", "https://api.groq.com/openai/v1/chat/completions", bytes.NewBuffer(jsonData))
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+apiKey)
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("Groq API returned status: %d", resp.StatusCode)
-	}
-
-	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}
 
-	var responseData ResponseBody
-	if err := json.Unmarshal(body, &responseData); err != nil {
+	// Giải mã JSON phản hồi từ API
+	var groqResponse GroqResponse
+	if err := json.Unmarshal(resp.Body(), &groqResponse); err != nil {
 		return "", err
 	}
 
-	if len(responseData.Choices) == 0 {
-		return "", errors.New("no response from Groq API")
+	// Kiểm tra xem API có trả lời không
+	if len(groqResponse.Choices) == 0 {
+		return "", errors.New("Không có phản hồi từ Groq API")
 	}
 
-	return responseData.Choices[0].Message.Content, nil
+	return groqResponse.Choices[0].Message.Content, nil
 }

@@ -1,7 +1,6 @@
 package processing
 
 import (
-	"TechmasterProject/03/db"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -72,7 +71,7 @@ func TranslateWords(words []string) []TranslatedWord {
 }
 
 func SaveToPostgres(words []string, originalText string, translatedWords []TranslatedWord) {
-	dbConn, err := db.ConnectToDB()
+	
 	if err != nil {
 		log.Fatal("Lỗi kết nối DB:", err)
 	}

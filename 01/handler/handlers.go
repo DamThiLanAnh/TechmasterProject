@@ -1,47 +1,28 @@
-package handler
+package handlers
 
 import (
-	"TechmasterProject/01/service"
-	"github.com/gomarkdown/markdown"
-	"github.com/gomarkdown/markdown/html"
+	services "TechmasterProject/01/service"
 	"github.com/kataras/iris/v12"
-	"log"
-	"os"
 )
 
-type Input struct {
-	Question string `json:"question"`
-}
-
-func ServeHomePage(ctx iris.Context) {
-	htmlContent, err := os.ReadFile("templates/index.html")
-	if err != nil {
-		ctx.StatusCode(iris.StatusInternalServerError)
-		ctx.WriteString("Error loading page")
-		return
+// ChatHandler xử lý yêu cầu chat
+func ChatHandler(ctx iris.Context, apiKey string) {
+	var request struct {
+		Question string `json:"question"`
 	}
-	ctx.HTML(string(htmlContent))
-}
 
-func HandleAsk(ctx iris.Context) {
-	var input Input
-	if err := ctx.ReadJSON(&input); err != nil {
+	if err := ctx.ReadJSON(&request); err != nil {
 		ctx.StatusCode(iris.StatusBadRequest)
-		ctx.JSON(iris.Map{"error": "Invalid request"})
+		ctx.JSON(iris.Map{"error": "Dữ liệu không hợp lệ"})
 		return
 	}
 
-	answer, err := service.CallGroqAPI(input.Question)
+	answer, err := services.AskGroq(request.Question, apiKey)
 	if err != nil {
-		log.Println("Error calling Groq API:", err)
 		ctx.StatusCode(iris.StatusInternalServerError)
-		ctx.JSON(iris.Map{"error": "Error calling Groq API"})
+		ctx.JSON(iris.Map{"error": "Không thể lấy dữ liệu từ API Groq"})
 		return
 	}
 
-	htmlFlags := html.CommonFlags | html.HrefTargetBlank
-	renderer := html.NewRenderer(html.RendererOptions{Flags: htmlFlags})
-	mdToHTML := markdown.ToHTML([]byte(answer), nil, renderer)
-
-	ctx.JSON(iris.Map{"answer": string(mdToHTML)})
+	ctx.JSON(iris.Map{"answer": answer})
 }

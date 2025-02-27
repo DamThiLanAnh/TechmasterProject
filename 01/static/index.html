@@ -1,13 +1,15 @@
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
+    <meta charset="UTF-8">
     <title>Chat với AI</title>
     <style>
-        body { font-family: Arial; text-align: center; padding: 20px; }
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
         .container { width: 50%; margin: auto; }
         textarea { width: 100%; height: 100px; padding: 10px; }
         button { width: 120px; padding: 10px; border-radius: 25px; background: #007BFF; color: white; cursor: pointer; }
         button:hover { background: #0056b3; }
+        .response { margin-top: 15px; padding: 10px; border: 1px solid #ccc; }
     </style>
 </head>
 <body>
@@ -16,16 +18,8 @@
     <textarea id="question" placeholder="Nhập câu hỏi..."></textarea>
     <button onclick="sendQuestion()">Gửi</button>
     <h3>Kết quả:</h3>
-    <div id="answer"></div>
+    <div id="answer" class="response"></div>
 </div>
-<script>
-    async function sendQuestion() {
-        let question = document.getElementById("question").value;
-        if (!question.trim()) return alert("Nhập câu hỏi!");
-        let response = await fetch("/ask", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question }) });
-        let data = await response.json();
-        document.getElementById("answer").innerHTML = data.answer;
-    }
-</script>
+<script src="script.js"></script>
 </body>
 </html>

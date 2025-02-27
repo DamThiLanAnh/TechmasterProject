@@ -6,5 +6,7 @@ services:
       - POSTGRES_USER=root
       - POSTGRES_PASSWORD=123techmaster
       - POSTGRES_DB=techmaster
+      - GROQ_API_KEY=
+      - GROQ_URL=
     ports:
       - "5432:5432"
