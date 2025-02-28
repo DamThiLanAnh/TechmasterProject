@@ -1,42 +1,52 @@
 package main
 
 import (
-	"TechmasterProject/03/db"
+	"log"
+	"os"
+
+	"github.com/iris-contrib/middleware/cors"
+	"github.com/kataras/iris/v12"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+
+	"TechmasterProject/03/config"
+	"TechmasterProject/03/routes"
 )
 
 func main() {
-	// Đoạn hội thoại mẫu
-	//conversation := `
-	//James: Chào bạn! Bạn có thể chỉ tôi đường đến hồ Hoàn Kiếm không?
-	//Lan: Chào bạn! Bạn đang ở đâu?
-	//James: Tôi đang ở phố Tràng Tiền.
-	//Lan: Từ đây, bạn đi thẳng, rẽ phải vào đường Đinh Tiên Hoàng, sẽ thấy hồ.
-	//James: Cảm ơn bạn nhiều!
-	//Lan: Không có gì, chúc bạn đi vui!
-	//`
-	//
-	//// Lưu đoạn hội thoại vào file
-	//fileName := "conversation.txt"
-	//err := os.WriteFile(fileName, []byte(conversation), 0644)
-	//if err != nil {
-	//	log.Fatal("Lỗi khi ghi file:", err)
-	//}
-	//fmt.Println("✅ Đã lưu đoạn hội thoại vào file", fileName)
-	//
-	//// Đọc nội dung từ file
-	//content, err := os.ReadFile(fileName)
-	//if err != nil {
-	//	log.Fatal("Lỗi khi đọc file:", err)
-	//}
-	//
-	//// Lọc từ quan trọng
-	//importantWords := processing.ExtractImportantWords(string(content))
-	//
-	//// Dịch các từ quan trọng
-	//translatedWords := processing.TranslateWords(importantWords)
-	//
-	//// Lưu vào PostgreSQL
-	//processing.SaveToPostgres(importantWords, string(content), translatedWords)
+	// Load config
+	config.LoadConfig()
 
-	db.ConnectToDB()
+	// Connect to database using GORM
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		dsn = "host=localhost user=myuser password=mypassword dbname=mydatabase port=5432 sslmode=disable TimeZone=Asia/Ho_Chi_Minh"
+	}
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+
+	// Create Iris app
+	app := iris.New()
+
+	// Set up CORS middleware
+	crs := cors.New(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
+		AllowedHeaders:   []string{"Content-Type", "Authorization"},
+		AllowCredentials: true,
+	})
+	app.UseRouter(crs)
+
+	// Setup routes
+	routes.RegisterRoutes(app, db)
+
+	// Start server
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	log.Printf("Server running on port %s", port)
+	app.Listen(":" + port)
 }
